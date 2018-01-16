@@ -2,13 +2,14 @@ state("Hue") {}
 
 startup{
 
-	// Other levels can be added here: (levelname, door)
-	vars.levels = new Tuple<string,int>[] {
-		new Tuple<string,int>( "UniversityOutside", 1 ),
-		new Tuple<string,int>( "Courtyard1", 0 ),
-		new Tuple<string,int>( "Courtyard2", 0 ),
-		new Tuple<string,int>( "Courtyard3", 0 ),
-		new Tuple<string,int>( "UniRooftop", 0 )
+	// Other levels can be added here: (levelname, door, enabled)
+	vars.levels = new Tuple<string,int, bool>[] {
+		new Tuple<string,int, bool>( "UniversityOutside", 1, true ),
+		new Tuple<string,int, bool>( "Courtyard1", 0, true ),
+		new Tuple<string,int, bool>( "Courtyard2", 0, true ),
+		new Tuple<string,int, bool>( "Courtyard3", 0, true ),
+		new Tuple<string,int, bool>( "UniRooftop", 0, true ),
+		new Tuple<string,int, bool>( "Village", 0, false )
 	};
 
 	vars.colourSlices = new Tuple<int,String>[]{
@@ -32,7 +33,7 @@ startup{
 	settings.Add( "level", true, "Levels" );
 	settings.CurrentDefaultParent = "level";
 	foreach( var level in vars.levels ){
-		settings.Add( level.Item1, true, level.Item1 );
+		settings.Add( level.Item1, level.Item3, level.Item1 );
 	}
 	
 	settings.CurrentDefaultParent = null;
