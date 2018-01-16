@@ -2,37 +2,37 @@ state("Hue") {}
 
 startup{
 
-	// Other levels can be added here:
-	vars.levels = new [] {
-		new { name = "UniversityOutside", door = 1},
-		new { name = "Courtyard1", door = 0 },
-		new { name = "Courtyard2", door = 0 },
-		new { name = "Courtyard3", door = 0 },
-		new { name = "UniRooftop", door = 0 }
+	// Other levels can be added here: (levelname, door)
+	vars.levels = new Tuple<string,int>[] {
+		new Tuple<string,int>( "UniversityOutside", 1 ),
+		new Tuple<string,int>( "Courtyard1", 0 ),
+		new Tuple<string,int>( "Courtyard2", 0 ),
+		new Tuple<string,int>( "Courtyard3", 0 ),
+		new Tuple<string,int>( "UniRooftop", 0 )
 	};
 
-	vars.colourSlices = new []{
-		new { id = 2, name = "Aqua" },
-		new { id = 5, name = "Purple" },
-		new { id = 8, name = "Orange" },
-		new { id = 6, name = "Pink" },
-		new { id = 7, name = "Red" },
-		new { id = 3, name = "Blue" },
-		new { id = 9, name = "Yellow" },
-		new { id = 0, name = "Lime" }
+	vars.colourSlices = new Tuple<int,String>[]{
+		new Tuple<int,string>( 2, "Aqua" ),
+		new Tuple<int,string>( 5, "Purple" ),
+		new Tuple<int,string>( 8, "Orange" ),
+		new Tuple<int,string>( 6, "Pink" ),
+		new Tuple<int,string>( 7, "Red" ),
+		new Tuple<int,string>( 3, "Blue" ),
+		new Tuple<int,string>( 9, "Yellow" ),
+		new Tuple<int,string>( 0, "Lime" )
 	};		
 	
 	settings.Add( "colours", true, "Colour Slices" );
 	settings.CurrentDefaultParent = "colours";
 	foreach( var colour in vars.colourSlices ){
-		settings.Add( colour.name, true, colour.name );
+		settings.Add( colour.Item2, true, colour.Item2 );
 	}
 	
 	settings.CurrentDefaultParent = null;
 	settings.Add( "level", true, "Levels" );
 	settings.CurrentDefaultParent = "level";
 	foreach( var level in vars.levels ){
-		settings.Add( level.name, true, level.name );
+		settings.Add( level.Item1, true, level.Item1 );
 	}
 	
 	settings.CurrentDefaultParent = null;
@@ -115,10 +115,11 @@ split {
 	// Split after collecting a colour slice:
 	
 	foreach( var colour in vars.colourSlices ){
-		bool colourCurrent = ( ( vars.coloursUnlocked.Current & 1 << colour.id ) != 0 );
-		bool colourOld = ( ( vars.coloursUnlocked.Old & 1 << colour.id ) != 0 );
+	
+		bool colourCurrent = ( ( vars.coloursUnlocked.Current & 1 << colour.Item1 ) != 0 );
+		bool colourOld = ( ( vars.coloursUnlocked.Old & 1 << colour.Item1 ) != 0 );
 		
-		if( settings[ colour.name ] && colourCurrent && !colourOld ){
+		if( settings[ colour.Item2 ] && colourCurrent && !colourOld ){
 			return true;
 		}
 	}
@@ -129,7 +130,7 @@ split {
 	if( vars.currentLevel != vars.prevLevel || vars.door.Current != vars.door.Old ){
 		
 		foreach( var level in vars.levels ){
-			if( settings[ level.name ] && vars.currentLevel == level.name && vars.door.Current == level.door){
+			if( settings[ level.Item1 ] && vars.currentLevel == level.Item1 && vars.door.Current == level.Item2){
 				return true;
 			}
 		}
@@ -144,6 +145,8 @@ split {
 			return true;
 		}
 	}
+	
+	return false;
 }
 
 start{
