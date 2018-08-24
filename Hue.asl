@@ -39,65 +39,77 @@ startup{
 	settings.CurrentDefaultParent = null;
 	settings.Add( "end", true, "Finish game" );
 	
-}
-
-init {
-	var ptr1 = IntPtr.Zero;
-	var ptr2 = IntPtr.Zero;
 	
 	//SaveLoadManager
-	var scanTarget1 = new SigScanTarget(0,
+	vars.targetSaveLoadManager = new SigScanTarget(0,
 		"?? ?? ?? ??",
         "00 00 00 00",
 		"9C 63 FF FF"
     );
 	
 	//GameManager
-	var scanTarget2 = new SigScanTarget(0,
+	vars.targetGameManager = new SigScanTarget(0,
 		"?? ?? ?? ??", 
 		"00 00 00 00", 
 		"4A 2F 00 00", 
 		"?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ??",
 		"01 00 00 00" 
 	);
-	
-	
+}
 
-	foreach (var page in game.MemoryPages(true)) {
-		var scanner = new SignatureScanner(game, page.BaseAddress, (int)page.RegionSize);
-		if ( ptr2 == IntPtr.Zero ){
-			ptr2 = scanner.Scan(scanTarget2);
+init {
+	
+	ThreadStart startScan = new ThreadStart(()=>{
+		print("Scan started");
+		var ptr1 = IntPtr.Zero;
+		var ptr2 = IntPtr.Zero;
+	
+		while( ptr1 == IntPtr.Zero || ptr2 == IntPtr.Zero ){
+			foreach (var page in game.MemoryPages(true)) {
+				var scanner = new SignatureScanner(game, page.BaseAddress, (int)page.RegionSize);
+				if ( ptr2 == IntPtr.Zero ){
+					ptr2 = scanner.Scan(vars.targetGameManager);
+				}
+				if ( ptr1 == IntPtr.Zero ){
+					ptr1 = scanner.Scan(vars.targetSaveLoadManager);
+				}	
+			}
+			if( ptr1 == IntPtr.Zero || ptr2 == IntPtr.Zero ){
+				print("Not found yet.");
+				Thread.Sleep(1000);
+			}
 		}
-		if ( ptr1 == IntPtr.Zero ){
-			ptr1 = scanner.Scan(scanTarget1);
-		}			
-	}
-	
-	if ( ptr1 == IntPtr.Zero || ptr2 == IntPtr.Zero ) {
-       Thread.Sleep(1000);
-	   throw new Exception();
-    }
-	
-	print( "Game started." );
-	
-	vars.currentLevelMemory = new MemoryWatcher<int>( ptr1 + 0x14 );
-    vars.door = new MemoryWatcher<int>( ptr1 + 0x34 );
-	vars.coloursUnlocked = new MemoryWatcher<int>( ptr1 + 0x38 );
+		
+		vars.currentLevelMemory = new MemoryWatcher<int>( ptr1 + 0x14 );
+		vars.door = new MemoryWatcher<int>( ptr1 + 0x34 );
+		vars.coloursUnlocked = new MemoryWatcher<int>( ptr1 + 0x38 );
 
-	vars.isInCutscene = new MemoryWatcher<bool>( ptr2 + 0x51 );
-	 
-    vars.watchers = new MemoryWatcherList() {
-        vars.door,
-		vars.currentLevelMemory,
-		vars.coloursUnlocked,
-		vars.isInCutscene
-    };
+		vars.isInCutscene = new MemoryWatcher<bool>( ptr2 + 0x51 );
+		 
+		vars.watchers = new MemoryWatcherList() {
+			vars.door,
+			vars.currentLevelMemory,
+			vars.coloursUnlocked,
+			vars.isInCutscene
+		};
 	
+		print("Scan finished");
+	});
+	
+	Thread thread = new Thread(startScan);
+	thread.Start();
+	
+	vars.watchers = null;
 	vars.prevLevel = "";
 	vars.currentLevel = "";
 }
 
 update {
+	//Wait for Scan to finish:
+	if(vars.watchers == null){
+		return false;
+	}
+
     vars.watchers.UpdateAll(game);
 
 	vars.prevLevel = vars.currentLevel;
@@ -105,10 +117,10 @@ update {
 	
 		var ptr = new IntPtr( vars.currentLevelMemory.Current );
 		var length = memory.ReadValue<byte>( ptr + 8 );
+		
 		vars.currentLevel = memory.ReadString( ptr + 12, length * 2 );
 		
 	}
-	
 }
 
 split {
