@@ -1,4 +1,12 @@
-state("Hue") {}
+state("Hue"){
+	//SaveLoadManager
+	string255 currentLevel : "Hue.exe", 0x00F57860, 0x1C, 0x14, 0x14, 0xC;
+	int lastDoor : "Hue.exe", 0x00F57860, 0x1C, 0x14, 0x34;	
+	int coloursUnlocked : "Hue.exe", 0x00F57860, 0x1C, 0x14, 0x38;
+	//GameManager
+	bool isInCutscene : "Hue.exe", 0x00F4C168, 0x0, 0x8, 0x50, 0x264, 0x10, 0x51;
+}
+
 
 startup{
 
@@ -39,147 +47,44 @@ startup{
 	settings.CurrentDefaultParent = null;
 	settings.Add( "end", true, "Finish game" );
 	
-	
-	//Steam version
-
-	//SaveLoadManager
-	vars.targetSaveLoadManagerSteam = new SigScanTarget(0,
-		"?? ?? ?? ?? 00 00 00 00 9C 63 FF FF ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? 00 00 00 00"
-	);
-	
-	//GameManager
-	vars.targetGameManagerSteam = new SigScanTarget(0,
-		"?? ?? ?? ?? 00 00 00 00 4A 2F 00 00 ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? 01 00 00 00" 
-	);
-	
-	
-	//Twitch version
-
-	//SaveLoadManager
-	vars.targetSaveLoadManagerTwitch = new SigScanTarget(0,
-		"?? ?? ?? ?? 00 00 00 00 FA 61 FF FF ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? 00 00 00 00"
-	);
-	
-	//GameManager
-	vars.targetGameManagerTwitch = new SigScanTarget(0,
-		"?? ?? ?? ?? 00 00 00 00 EC 30 00 00 ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? 01 00 00 00" 
-	);
-	
-	vars.thread = null;
 }
 
-init {
-	
-	ThreadStart startScan = new ThreadStart(()=>{
-		print("Scan started");
-		var ptr1 = IntPtr.Zero;
-		var ptr2 = IntPtr.Zero;
-		
-		var ptr1Steam = IntPtr.Zero;
-		var ptr1Twitch = IntPtr.Zero;
-		
-		var ptr2Steam = IntPtr.Zero;
-		var ptr2Twitch = IntPtr.Zero;
-	
-		while( ptr1 == IntPtr.Zero || ptr2 == IntPtr.Zero ){
-			foreach (var page in game.MemoryPages(true)) {
-				var scanner = new SignatureScanner(game, page.BaseAddress, (int)page.RegionSize);
-				
-				if ( ptr1 == IntPtr.Zero ){
-					ptr1Steam = scanner.Scan(vars.targetSaveLoadManagerSteam);
-					ptr1Twitch = scanner.Scan(vars.targetSaveLoadManagerTwitch);
-					
-					if(ptr1Steam != IntPtr.Zero){
-						ptr1 = ptr1Steam;
-					}else if(ptr1Twitch != IntPtr.Zero){
-						ptr1 = ptr1Twitch;
-					}
-				}
-				
-				if ( ptr2 == IntPtr.Zero ){
-				
-					ptr2Steam = scanner.Scan(vars.targetGameManagerSteam);
-					ptr2Twitch = scanner.Scan(vars.targetGameManagerTwitch);
-					
-					if(ptr2Steam != IntPtr.Zero){
-						ptr2 = ptr2Steam;
-					}else if(ptr2Twitch != IntPtr.Zero){
-						ptr2 = ptr2Twitch;
-					}
-				}
-					
-			}
-			
-			if( ptr1 == IntPtr.Zero || ptr2 == IntPtr.Zero ){
-				print("Not found yet.");
-				Thread.Sleep(1000);
-			}
+
+start{
+	if( current.currentLevel != old.currentLevel || current.lastDoor != old.lastDoor ){
+		if( current.currentLevel == "IntroDream" && current.lastDoor == -1 ){
+			return true;
 		}
-		
-		vars.currentLevelMemory = new MemoryWatcher<int>( ptr1 + 0x14 );
-		vars.door = new MemoryWatcher<int>( ptr1 + 0x34 );
-		vars.coloursUnlocked = new MemoryWatcher<int>( ptr1 + 0x38 );
-
-		vars.isInCutscene = new MemoryWatcher<bool>( ptr2 + 0x51 );
-		 
-		vars.watchers = new MemoryWatcherList() {
-			vars.door,
-			vars.currentLevelMemory,
-			vars.coloursUnlocked,
-			vars.isInCutscene
-		};
-	
-		print("Scan finished");
-	});
-	
-	vars.thread = new Thread(startScan);
-	vars.thread.Start();
-	
-	vars.watchers = null;
-	vars.prevLevel = "";
-	vars.currentLevel = "";
+	}
+	return false;
 }
 
-update {
-	//Wait for Scan to finish:
-	if(vars.watchers == null){
-		return false;
-	}
-
-    vars.watchers.UpdateAll(game);
-
-	vars.prevLevel = vars.currentLevel;
-	if( vars.currentLevelMemory.Current != vars.currentLevelMemory.Old ){
-	
-		var ptr = new IntPtr( vars.currentLevelMemory.Current );
-		var length = memory.ReadValue<byte>( ptr + 8 );
-		
-		vars.currentLevel = memory.ReadString( ptr + 12, length * 2 );
-		
-	}
-}
 
 split {
-	
+		
 	// Split after collecting a colour slice:
 	
 	foreach( var colour in vars.colourSlices ){
 	
-		bool colourCurrent = ( ( vars.coloursUnlocked.Current & 1 << colour.Item1 ) != 0 );
-		bool colourOld = ( ( vars.coloursUnlocked.Old & 1 << colour.Item1 ) != 0 );
+		if(settings[ colour.Item2 ]){
 		
-		if( settings[ colour.Item2 ] && colourCurrent && !colourOld ){
-			return true;
-		}
+			int mask = 1 << colour.Item1;
+			bool currentUnlocked = Convert.ToBoolean( current.coloursUnlocked & mask );
+			bool oldUnlocked = Convert.ToBoolean( old.coloursUnlocked & mask);
+			
+			if( currentUnlocked && !oldUnlocked ){
+				return true;
+			}
+		}		
 	}
 	
 	
 	// Split after entering a level:
 	
-	if( vars.currentLevel != vars.prevLevel || vars.door.Current != vars.door.Old ){
+	if( current.currentLevel != old.currentLevel || current.lastDoor != old.lastDoor ){
 		
 		foreach( var level in vars.levels ){
-			if( settings[ level.Item1 ] && vars.currentLevel == level.Item1 && vars.door.Current == level.Item2){
+			if( settings[ level.Item1 ] && current.currentLevel == level.Item1 && current.lastDoor == level.Item2){
 				return true;
 			}
 		}
@@ -188,28 +93,14 @@ split {
 	
 	// Split after finishing the game:
 	
-	if( settings["end"] && vars.currentLevel == "OutroDream" && vars.door.Current == -1 ){
-		if( vars.isInCutscene.Current != vars.isInCutscene.Old ){
+	if( settings["end"] && current.currentLevel == "OutroDream" && current.lastDoor == -1 ){
+		
+		if( current.isInCutscene != old.isInCutscene ){
 			// split when entering cutscene at the end
 			return true;
 		}
+		
 	}
 	
 	return false;
-}
-
-start{
-
-	if( vars.currentLevel != vars.prevLevel || vars.door.Current != vars.door.Old ){
-		if( vars.currentLevel == "IntroDream" && vars.door.Current == -1 ){
-			return true;
-		}
-	}
-	return false;
-}
-
-exit{
-	if(vars.thread != null){
-		vars.thread.Abort();
-	}
 }
