@@ -1,6 +1,7 @@
 state("Hue"){
 	//SaveLoadManager
 	string255 currentLevel : "Hue.exe", 0x00F57860, 0x1C, 0x14, 0x14, 0xC;
+	int currentLevel_address : "Hue.exe", 0x00F57860, 0x1C, 0x14, 0x14;
 	int lastDoor : "Hue.exe", 0x00F57860, 0x1C, 0x14, 0x34;	
 	int coloursUnlocked : "Hue.exe", 0x00F57860, 0x1C, 0x14, 0x38;
 	//GameManager
@@ -51,7 +52,7 @@ startup{
 
 
 start{
-	if( current.currentLevel != old.currentLevel || current.lastDoor != old.lastDoor ){
+	if( current.currentLevel_address != old.currentLevel_address || current.lastDoor != old.lastDoor ){
 		if( current.currentLevel == "IntroDream" && current.lastDoor == -1 ){
 			return true;
 		}
