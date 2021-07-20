@@ -48,6 +48,7 @@ startup{
 		settings.Add( level.Item1, level.Item3, level.Item1 );
 	}
 	settings.CurrentDefaultParent = null;
+	settings.Add("beaker", false, "Beaker pickups");
 	settings.Add("end", true, "Finish game");
 	settings.CurrentDefaultParent = "level";
 	settings.CurrentDefaultParent = null;
