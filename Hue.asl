@@ -4,6 +4,7 @@ state("Hue"){
 	int currentLevel_address : "Hue.exe", 0x00F57860, 0x1C, 0x14, 0x14;
 	int lastDoor : "Hue.exe", 0x00F57860, 0x1C, 0x14, 0x34;	
 	int coloursUnlocked : "Hue.exe", 0x00F57860, 0x1C, 0x14, 0x38;
+	int collectiblesUnlocked : "Hue.exe", 0x00F57860, 0x1C, 0x14, 0x3c;
 	//GameManager
 	bool isInCutscene : "Hue.exe", 0x00F0799C, 0x8, 0x0, 0x10, 0x4, 0x4C, 0x38, 0x51;
 	string255 currentLevelName: "Hue.exe", 0x00F0799C, 0x8, 0x0, 0x10, 0x4, 0x4C, 0x38, 0x44, 0xC;
@@ -95,6 +96,10 @@ split{
 			// split when entering cutscene at the end
 			return true;
 		}
+	}
+	//Split on beakers
+	if (settings["beaker"] && old.collectiblesUnlocked != current.collectiblesUnlocked){
+		return true;
 	}
 	return false;
 }
