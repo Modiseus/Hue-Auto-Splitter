@@ -1,2 +1,2 @@
 # Hue-Auto-Splitter
-A auto splitter for speedrunning the game Hue.
+An auto splitter for speedrunning the game [Hue](https://www.huethegame.com/).
