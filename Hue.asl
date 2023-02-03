@@ -52,11 +52,14 @@ startup{
 	settings.Add("end", true, "Finish game");
 	settings.CurrentDefaultParent = "level";
 	settings.CurrentDefaultParent = null;
+	
+	vars.lastColourSplit = 0;
 }
 
 start{
 	if( current.currentLevel_address != old.currentLevel_address || current.lastDoor != old.lastDoor ){
 		if( current.currentLevel == "IntroDream" && current.lastDoor == -1 ){
+			vars.lastColourSplit = 0;
 			return true;
 		}
 	}
@@ -69,12 +72,13 @@ split{
 		if(settings[colour.Item2]){
 			int mask = 1 << colour.Item1;
 			bool currentUnlocked = Convert.ToBoolean(current.coloursUnlocked & mask);
-			bool oldUnlocked = Convert.ToBoolean(old.coloursUnlocked & mask);
+			bool oldUnlocked = Convert.ToBoolean((vars.lastColourSplit | old.coloursUnlocked) & mask);
 
 			if(currentUnlocked && !oldUnlocked){
+				vars.lastColourSplit = current.coloursUnlocked;
 				return true;
 			}
-		}		
+		}
 	}
 
 	// Split after entering a level
