@@ -59,11 +59,14 @@ startup{
 start{
 	if( current.currentLevel_address != old.currentLevel_address || current.lastDoor != old.lastDoor ){
 		if( current.currentLevel == "IntroDream" && current.lastDoor == -1 ){
-			vars.lastColourSplit = 0;
 			return true;
 		}
 	}
 	return false;
+}
+
+onStart{
+	vars.lastColourSplit = 0;
 }
 
 split{
