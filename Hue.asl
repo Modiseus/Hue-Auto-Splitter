@@ -52,6 +52,8 @@ startup{
 	settings.Add("end", true, "Finish game");
 	settings.CurrentDefaultParent = "level";
 	settings.CurrentDefaultParent = null;
+	
+	vars.lastColourSplit = 0;
 }
 
 start{
@@ -63,18 +65,23 @@ start{
 	return false;
 }
 
+onStart{
+	vars.lastColourSplit = 0;
+}
+
 split{
 	// Split after collecting a colour slice
 	foreach( var colour in vars.colourSlices){
 		if(settings[colour.Item2]){
 			int mask = 1 << colour.Item1;
 			bool currentUnlocked = Convert.ToBoolean(current.coloursUnlocked & mask);
-			bool oldUnlocked = Convert.ToBoolean(old.coloursUnlocked & mask);
+			bool oldUnlocked = Convert.ToBoolean((vars.lastColourSplit | old.coloursUnlocked) & mask);
 
 			if(currentUnlocked && !oldUnlocked){
+				vars.lastColourSplit = current.coloursUnlocked;
 				return true;
 			}
-		}		
+		}
 	}
 
 	// Split after entering a level
